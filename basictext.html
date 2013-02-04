@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>D3 live updating</title>
+      <meta charset="utf-8">
+    <link rel="stylesheet" href="css/reset.css" type="text/css" media="screen" charset="utf-8" />
+    <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+    <script type="text/javascript" src="js/jq.js"></script>
+    <script type="text/javascript" src="js/sb.js"></script>
+    <script src="http://d3js.org/d3.v2.min.js?2.10.1"></script>
+    <script type="text/javascript">
+
+      $(window).on("load", setup);
+      
+      // Spacebrew Object
+      var sb;
+
+      /**
+       * setup Configure spacebrew connection and adds the mousedown listener.
+       */
+      function setup (){
+        // create spacebrew client object
+        sb = new Spacebrew.Client("sandbox.spacebrew.cc", "d3test");
+
+        // set the base description
+        sb.description("This is a basic example showing the use of D3 to visualize live date from Spacebrew.");
+
+        // configure the publication and subscription feeds
+        //sb.addPublish( "buttonPress", "boolean", "false" );
+        //sb.addPublish( "randomRange", "range", "0" );
+        sb.addSubscribe( "stringdata", "string" );
+        //sb.addSubscribe( "text", "string" );
+
+        // override Spacebrew events - this is how you catch events coming from Spacebrew
+        sb.onRangeMessage = onRangeMessage;
+        sb.onStringMessage = onStringMessage;
+
+        // connect to spacbrew
+        sb.connect();
+
+        // listen to the mouse 
+        $("#buttonMsg").on("mousedown", onButtonPress);
+      }
+
+      /**
+       * onButtonPress Function that is called whenever the button is pressed.  
+       * @param  {Event object} evt Holds information about the button press event
+       */
+      function onButtonPress (evt){
+        console.log("Sending message"); 
+        sb.send("buttonPress", "boolean", "true");
+        sb.send("randomRange", "range", Math.floor(Math.random()*1024) );
+      }
+
+      /**
+       * onRangeMessage Function that is called whenever new spacebrew range messages are received.
+       *          It accepts two parameters:
+       * @param  {String} name    Holds name of the subscription feed channel
+       * @param  {Integer} value  Holds value received from the subscription feed
+       */
+      function onRangeMessage( name, value ){
+        console.log("received color message");
+        changeBGC(value);
+      }
+
+      /**
+       * onStringMessage Function that is called whenever new spacebrew string messages are received.
+       *          It accepts two parameters:
+       * @param  {String} name    Holds name of the subscription feed channel
+       * @param  {String} value   Holds text message received from the subscription feed
+       */
+      function onStringMessage( name, value ){
+        console.log("received text message ", value); 
+        update(value);
+        //document.getElementById("buttonMsg").innerHTML = value;        
+      }
+
+</script>
+    <!-- MAIN -->
+</head>
+<body>
+
+<script>
+
+var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
+
+var width = 960,
+    height = 500;
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(32," + (height / 2) + ")");
+
+function update(data) {
+  //console.log(data);
+  // DATA JOIN
+  // Join new data with old elements, if any.
+  var text = svg.selectAll("text")
+      .data(data);
+
+  // UPDATE
+  // Update old elements as needed.
+  text.attr("class", "update");
+
+  // ENTER
+  // Create new elements as needed.
+  text.enter().append("text")
+      .attr("class", "enter")
+      .attr("x", function(d, i) { return i * 32; })
+      .attr("dy", ".35em");
+
+  // ENTER + UPDATE
+  // Appending to the enter selection expands the update selection to include
+  // entering elements; so, operations on the update selection after appending to
+  // the enter selection will apply to both entering and updating nodes.
+  text.text(function(d) { return d; });
+
+  // EXIT
+  // Remove old elements as needed.
+  text.exit().remove();
+}
+
+// The initial display.
+// update(alphabet);
+
+// Grab a random sample of letters from the alphabet, in alphabetical order.
+// setInterval(function() {
+//   update(shuffle(alphabet)
+//       .slice(0, Math.floor(Math.random() * 26))
+//       .sort());
+// }, 1500);
+
+// Shuffles the input array.
+// function shuffle(array) {
+//   var m = array.length, t, i;
+//   while (m) {
+//     i = Math.floor(Math.random() * m--);
+//     t = array[m], array[m] = array[i], array[i] = t;
+//   }
+//   return array;
+// }
+
+</script>
+</body>
+</html>
